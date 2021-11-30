@@ -1,21 +1,18 @@
 import os
 from pprint import pprint
-from datetime import datetime
+import threading
+from time import sleep
 
 from flask import Flask, jsonify, send_from_directory, request
-from flask.helpers import safe_join
-
+from elasticsearch import Elasticsearch
 
 app = Flask(__name__)
-static = os.path.dirname(__file__)
-
-
-from elasticsearch import Elasticsearch
-es = Elasticsearch()
+static = os.path.join(os.path.dirname(__file__), 'static')
 index_name = "test_ac_idx"
 
+
 def load_dict():
-    with open('../english-words/words_alpha.txt') as f:
+    with open(os.path.join(static, 'words_alpha.txt')) as f:
         return set(f.read().split())
 
 def create_index(es: Elasticsearch, index_name:str):
@@ -48,13 +45,6 @@ def create_index(es: Elasticsearch, index_name:str):
 
 
 def fill_data(es:Elasticsearch, index_name:str):
-    #res = es.index(index=index_name, id=1, document={ "suggest" : { "input":  "vasya", "weight" : 10 }})
-    #res = es.index(index=index_name, id=2, document={ "suggest" : { "input":  "Vanya", "weight": 10 }})
-    #res = es.index(index=index_name, id=3, document={ "suggest" : { "input":  "Veronica", "weight": 10 }})
-    #res = es.index(index=index_name, id=4, document={ "suggest" : { "input":  "Vader", "weight": 10 }})
-    #res = es.index(index=index_name, id=5, document={ "suggest" : { "input":  "Nicolas", "weight": 10 }})
-    #res = es.index(index=index_name, id=6, document={ "suggest" : { "input":  "Micolas", "weight": 10 }})
-
     d = load_dict()
     for id, word in enumerate(d):
         es.index(index=index_name, id=(id+1), document={ "suggest" : { "input":  word, "weight": 10 }})
@@ -81,6 +71,13 @@ def es_search(es: Elasticsearch, index_name:str, word:str):
 @app.route('/search')
 def search():
     term = request.args.get('term')
+    es = Elasticsearch(['elastic', 'localhost'])
+    if not es.indices.exists(index=index_name):
+        create_index(es, index_name)
+        r = threading.Thread(name='gen', target=lambda: fill_data(es, index_name))
+        r.start()
+        sleep(5)
+
     r = es_search(es, index_name, term)
     return jsonify(r)
 
@@ -88,12 +85,6 @@ def search():
 def test():
     return send_from_directory(static, 'autocomplete.html')
 
-
-if __name__ == '__main__':
-
-    #create_index(es, index_name)
-    #fill_data(es, index_name)
-    #r = es_search(es, index_name, "xyz")
-    #pprint(r)
-
-    app.run()
+@app.route('/static/<path>')
+def static_files(path:str):
+    return send_from_directory(static, path)
