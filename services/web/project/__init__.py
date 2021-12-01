@@ -58,7 +58,7 @@ def es_search(es: Elasticsearch, index_name:str, word:str):
             "completion": {
                 "field": "suggest",
                 "fuzzy": {
-                        "fuzziness": 2
+                        "fuzziness": "AUTO:3,7"
                 }
             }
             }

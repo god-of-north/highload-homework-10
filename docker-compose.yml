@@ -28,8 +28,6 @@ services:
       dockerfile: Dockerfile
     environment:
       FLASK_APP: project/__init__.py
-      SQL_HOST: db
-      SQL_PORT: 3306
       APP_FOLDER: /home/app/web
     command: gunicorn --bind 0.0.0.0:5000 manage:app
     ports:

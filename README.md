@@ -10,6 +10,37 @@ docker-compose build
 docker-compose up -d
 ```
 
+## Elasticsearch index & query
+
+Index mapping:
+```
+"mappings": {
+    "properties": {
+        "suggest": {
+            "type": "completion"
+        },
+        "title": {
+            "type": "keyword"
+        }
+    }
+}        
+```
+
+Search query:
+```
+"suggest": {
+    "word-suggest": {
+        "prefix": word,
+        "completion": {
+            "field": "suggest",
+            "fuzzy": {
+                "fuzziness": "AUTO:3,7"
+            }
+        }
+    }
+}
+```
+
 ## Testing
 
 When web service is started you can open main window:
